@@ -1,0 +1,13 @@
+services:
+  netpulse:
+    build: .
+    ports:
+      - "127.0.0.1:8010:8000"
+    environment:
+      DATABASE_PATH: /data/netpulse.db
+      MONITOR_INTERVAL_SECONDS: "30"
+    volumes:
+      - netpulse-data:/data
+
+volumes:
+  netpulse-data:
