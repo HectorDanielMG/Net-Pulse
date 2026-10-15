@@ -3,6 +3,7 @@ const esc = value => String(value ?? "").replace(/[&<>"']/g, char => ({"&":"&amp
 const time = value => value ? new Date(value).toLocaleString("es-MX", {month:"short", day:"2-digit", hour:"2-digit", minute:"2-digit"}) : "sin datos";
 const api = (path, options) => fetch(path, options).then(async response => { const data = await response.json(); if (!response.ok) throw Error(data.detail || "No se pudo completar la acción"); return data; });
 const list = (target, items, renderer, empty) => { $(target).innerHTML = items.length ? items.map(renderer).join("") : `<div class="empty">${empty}</div>`; };
+const networkDevices = new Map();
 
 function renderOverview(summary, history, alerts, events) {
   $("devices-count").textContent = summary.devices;
@@ -21,6 +22,7 @@ function renderOverview(summary, history, alerts, events) {
 }
 
 function renderNetwork(snapshot) {
+  networkDevices.clear(); snapshot.devices.forEach(device => networkDevices.set(device.key, device));
   $("network-status-label").textContent = snapshot.connection.includes("Conectado") ? "CONEXIÓN IDENTIFICADA" : "REVISIÓN INCOMPLETA";
   $("network-connection").textContent = snapshot.connection;
   $("network-detail").textContent = snapshot.connection_detail;
@@ -32,7 +34,20 @@ function renderNetwork(snapshot) {
   $("network-count").textContent = snapshot.device_count;
   $("discovery-note").textContent = snapshot.discovery_note;
   $("privacy-note").textContent = snapshot.privacy_note;
-  list("network-devices", snapshot.devices, device => `<article class="network-device"><div class="network-device-top"><span class="device-avatar">${device.kind === "router" ? "⌂" : "◉"}</span><div><b>${esc(device.name)}</b><small>${esc(device.address)}</small></div></div><p>${esc(device.description)}</p><span class="device-state">${esc(device.status)}</span><div class="identifier">${esc(device.identifier)}</div></article>`, "No se detectaron otros equipos todavía. Conecta un dispositivo, navega unos segundos y vuelve a actualizar.");
+  list("network-devices", snapshot.devices, device => `<article class="network-device"><div class="network-device-top"><span class="device-avatar">${device.kind === "router" ? "⌂" : "◉"}</span><div><b>${esc(device.alias || device.name)}</b><small>${esc(device.address)}</small></div>${device.known ? '<span class="known-badge">Conocido</span>' : ''}</div><p>${esc(device.notes || device.description)}</p><span class="device-state">${esc(device.status)}</span><div class="device-card-actions"><span class="identifier">${esc(device.identifier)}</span><button class="secondary manage-network-device" data-key="${device.key}">Ver detalles</button></div></article>`, "No se detectaron otros equipos todavía. Conecta un dispositivo, navega unos segundos y vuelve a actualizar.");
+  document.querySelectorAll(".manage-network-device").forEach(button => button.onclick = () => openNetworkDevice(button.dataset.key));
+}
+
+function openNetworkDevice(key) {
+  const device = networkDevices.get(key); if (!device) return;
+  const form = $("network-device-form"); form.dataset.key = key;
+  $("network-device-title").textContent = device.alias || device.name;
+  $("network-device-address").textContent = device.address;
+  $("network-device-status").textContent = device.status;
+  $("network-device-kind").textContent = device.kind === "router" ? "Router" : "Dispositivo de red";
+  $("network-device-identifier").textContent = device.identifier;
+  form.elements.alias.value = device.alias || ""; form.elements.known.checked = Boolean(device.known); form.elements.notes.value = device.notes || "";
+  $("network-device-error").textContent = ""; $("network-device-modal").showModal();
 }
 
 function renderDevices(devices) {
@@ -78,6 +93,7 @@ document.querySelectorAll(".scenario-buttons button").forEach(button => button.o
 $("clear-lab").onclick = async () => { await api("/api/lab", {method:"DELETE"}); refresh(); };
 $("add-device").onclick = $("add-device-2").onclick = () => $("device-modal").showModal();
 $("device-modal").querySelector(".close").onclick = () => $("device-modal").close();
+$("network-device-modal").querySelector(".close").onclick = () => $("network-device-modal").close();
 $("device-form").onsubmit = async event => {
   event.preventDefault(); const form = Object.fromEntries(new FormData(event.target));
   if (!form.port) delete form.port; form.port = form.port ? Number(form.port) : undefined; form.latency_warning_ms = Number(form.latency_warning_ms); form.loss_warning_percent = Number(form.loss_warning_percent);
@@ -85,4 +101,13 @@ $("device-form").onsubmit = async event => {
   catch (error) { $("form-error").textContent = error.message; }
 };
 $("run-diagnostic").onclick = async () => { const id = $("diagnostic-device").value; if (id) $("diagnostic-result").textContent = JSON.stringify(await api(`/api/diagnostics/${id}`), null, 2); };
+$("network-device-form").onsubmit = async event => {
+  event.preventDefault(); const form = event.currentTarget; const values = new FormData(form);
+  try { await api(`/api/network/devices/${form.dataset.key}`, {method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify({alias:values.get("alias"), known:values.get("known") === "on", notes:values.get("notes")})}); $("network-device-modal").close(); scanNetwork(); }
+  catch (error) { $("network-device-error").textContent = error.message; }
+};
+$("monitor-network-device").onclick = () => {
+  const device = networkDevices.get($("network-device-form").dataset.key); if (!device) return;
+  $("network-device-modal").close(); const form = $("device-form"); form.elements.name.value = device.alias || device.name; form.elements.host.value = device.address; form.elements.kind.value = device.kind === "router" ? "router" : "other"; $("device-modal").showModal();
+};
 refresh();

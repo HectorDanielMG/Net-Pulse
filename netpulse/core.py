@@ -79,6 +79,10 @@ def initialize() -> None:
           category TEXT NOT NULL, message TEXT NOT NULL, simulated INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL
         );
         CREATE TABLE IF NOT EXISTS app_state (key TEXT PRIMARY KEY, value TEXT NOT NULL, updated_at TEXT NOT NULL);
+        CREATE TABLE IF NOT EXISTS network_device_preferences (
+          device_key TEXT PRIMARY KEY, alias TEXT NOT NULL DEFAULT '', known INTEGER NOT NULL DEFAULT 0,
+          notes TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL
+        );
         """)
         con.execute("INSERT OR IGNORE INTO app_state(key,value,updated_at) VALUES('last_monitor_run','',?)", (stamp(),))
 
@@ -102,6 +106,21 @@ def device_payload(row: sqlite3.Row) -> dict[str, Any]:
     result["monitoring_enabled"] = bool(result["monitoring_enabled"])
     result["simulated"] = bool(result["simulated"])
     return result
+
+
+def network_device_preferences() -> dict[str, dict[str, Any]]:
+    return {
+        row["device_key"]: {"alias": row["alias"], "known": bool(row["known"]), "notes": row["notes"]}
+        for row in rows("SELECT device_key,alias,known,notes FROM network_device_preferences")
+    }
+
+
+def save_network_device_preference(device_key: str, alias: str, known: bool, notes: str) -> dict[str, Any]:
+    with db() as con:
+        con.execute("""INSERT INTO network_device_preferences(device_key,alias,known,notes,updated_at)
+        VALUES(?,?,?,?,?) ON CONFLICT(device_key) DO UPDATE SET alias=excluded.alias,known=excluded.known,
+        notes=excluded.notes,updated_at=excluded.updated_at""", (device_key, alias.strip(), int(known), notes.strip(), stamp()))
+    return {"alias": alias.strip(), "known": known, "notes": notes.strip()}
 
 
 def create_device(data: dict[str, Any]) -> dict[str, Any]:

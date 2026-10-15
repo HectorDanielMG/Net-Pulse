@@ -7,6 +7,7 @@ instantánea útil para una persona que administra su propia red.
 from __future__ import annotations
 
 import ipaddress
+import hashlib
 import socket
 import subprocess
 from datetime import datetime, timezone
@@ -74,6 +75,7 @@ def _device(address: str, mac: str, state: str, gateway: str | None) -> dict[str
     is_router = address == gateway
     is_active = state in {"REACHABLE", "PERMANENT"}
     return {
+        "key": hashlib.sha256(f"{mac}|{address}".encode()).hexdigest()[:24],
         "address": address,
         "name": "Tu router" if is_router else "Dispositivo en tu red",
         "kind": "router" if is_router else "device",

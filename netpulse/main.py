@@ -36,6 +36,11 @@ class MonitorInput(BaseModel):
 class LabScenario(BaseModel):
     scenario: Literal["healthy", "outage", "latency", "loss", "recovery"]
 
+class NetworkDevicePreference(BaseModel):
+    alias: str = Field(default="", max_length=80)
+    known: bool = False
+    notes: str = Field(default="", max_length=500)
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     core.initialize()
@@ -61,7 +66,17 @@ def prometheus() -> str: return core.metrics()
 @app.get("/api/summary")
 def summary() -> dict: return core.summary()
 @app.get("/api/network/discovery")
-def network_discovery() -> dict: return network.discover_network()
+def network_discovery() -> dict:
+    snapshot = network.discover_network()
+    preferences = core.network_device_preferences()
+    for device in snapshot["devices"]:
+        device.update(preferences.get(device["key"], {"alias": "", "known": False, "notes": ""}))
+    return snapshot
+@app.put("/api/network/devices/{device_key}")
+def save_network_device(device_key: str, payload: NetworkDevicePreference) -> dict:
+    if len(device_key) != 24 or any(char not in "0123456789abcdef" for char in device_key):
+        raise HTTPException(400, "Identificador de dispositivo inválido")
+    return core.save_network_device_preference(device_key, payload.alias, payload.known, payload.notes)
 @app.get("/api/devices")
 def devices() -> list[dict]: return [core.device_payload(row) for row in core.rows("SELECT * FROM devices ORDER BY name")]
 @app.post("/api/devices", status_code=201)
