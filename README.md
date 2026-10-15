@@ -29,6 +29,8 @@ docker compose up --build
 
 Abre [http://localhost:8010](http://localhost:8010). El puerto se liga a `127.0.0.1`; no expone NetPulse a la red local.
 
+En Linux, Docker usa la red del equipo anfitrión para que la sección **Mi red** pueda consultar los dispositivos reales de esa red. La aplicación sigue escuchando únicamente en `127.0.0.1:8010`.
+
 ### Con Python
 
 ```bash
@@ -54,7 +56,7 @@ Abre **Mi red** y pulsa **Actualizar dispositivos**. NetPulse consulta la tabla 
 
 - No escanea rangos de IP ni intenta conectarse a puertos de otros equipos.
 - Un equipo que está en reposo puede no aparecer hasta que se comunique con tu computadora.
-- Si usas Docker, la revisión corresponde a la red visible para el contenedor. Para revisar directamente la red de tu computadora, inicia NetPulse con Python en el equipo anfitrión.
+- En Docker sobre Linux, la revisión utiliza la red del equipo anfitrión para mostrar los dispositivos reales detectados.
 
 ## Arquitectura
 
