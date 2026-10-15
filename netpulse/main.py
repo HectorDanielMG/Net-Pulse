@@ -9,7 +9,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
-from . import core
+from . import core, network
 
 ROOT = Path(__file__).resolve().parents[1]
 INTERVAL = max(10, int(os.getenv("MONITOR_INTERVAL_SECONDS", "30")))
@@ -60,6 +60,8 @@ def health() -> dict: return {"status": "ok", "monitor_interval_seconds": INTERV
 def prometheus() -> str: return core.metrics()
 @app.get("/api/summary")
 def summary() -> dict: return core.summary()
+@app.get("/api/network/discovery")
+def network_discovery() -> dict: return network.discover_network()
 @app.get("/api/devices")
 def devices() -> list[dict]: return [core.device_payload(row) for row in core.rows("SELECT * FROM devices ORDER BY name")]
 @app.post("/api/devices", status_code=201)

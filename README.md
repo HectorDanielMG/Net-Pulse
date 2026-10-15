@@ -17,6 +17,7 @@ No afirma supervisar dispositivos reales: al iniciar no hay equipos ni métricas
 - Laboratorio determinista: saludable, caída, latencia, pérdida y recuperación.
 - API REST con documentación en `/docs`, salud en `/healthz` y métricas simples en `/metrics`.
 - Interfaz web adaptable conectada al backend.
+- Vista **Mi red** para consultar los dispositivos que el sistema ya detectó, la puerta de enlace, la dirección local y el estado de conexión, sin abrir puertos ni realizar sondeos activos.
 
 ## Inicio rápido
 
@@ -46,6 +47,14 @@ Puedes copiar `.env.example` como referencia; no contiene secretos. `DATABASE_PA
 3. Ejecuta **Recuperación** para resolver los incidentes.
 4. Consulta **Alerts**, **Incidents**, **Performance**, **Network Topology** y **Diagnostics** para observar la misma evidencia.
 5. Usa **Limpiar datos de laboratorio** para retirar únicamente dispositivos y mediciones simuladas.
+
+## Revisar tu red local
+
+Abre **Mi red** y pulsa **Actualizar dispositivos**. NetPulse consulta la tabla de vecinos disponible en el equipo donde se ejecuta y presenta los equipos detectados con descripciones sencillas.
+
+- No escanea rangos de IP ni intenta conectarse a puertos de otros equipos.
+- Un equipo que está en reposo puede no aparecer hasta que se comunique con tu computadora.
+- Si usas Docker, la revisión corresponde a la red visible para el contenedor. Para revisar directamente la red de tu computadora, inicia NetPulse con Python en el equipo anfitrión.
 
 ## Arquitectura
 
