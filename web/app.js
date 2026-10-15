@@ -27,6 +27,7 @@ function renderNetwork(snapshot) {
   $("network-scan-time").textContent = `revisado ${time(snapshot.scanned_at)}`;
   $("network-gateway").textContent = snapshot.gateway;
   $("network-interface").textContent = snapshot.interface;
+  $("network-interface").title = snapshot.interface_detail || snapshot.interface;
   $("network-address").textContent = snapshot.local_address;
   $("network-count").textContent = snapshot.device_count;
   $("discovery-note").textContent = snapshot.discovery_note;

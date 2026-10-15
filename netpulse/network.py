@@ -83,6 +83,19 @@ def _device(address: str, mac: str, state: str, gateway: str | None) -> dict[str
     }
 
 
+def _connection_name(interface: str | None) -> str:
+    if not interface:
+        return "No disponible"
+    normalized = interface.lower()
+    if normalized.startswith(("wl", "wifi")):
+        return "Wi‑Fi"
+    if normalized.startswith(("en", "eth")):
+        return "Cable de red"
+    if normalized == "lo":
+        return "Conexión local"
+    return "Conexión de red"
+
+
 def discover_network() -> dict:
     """Devuelve una instantánea local, sin hacer conexiones a los equipos."""
     gateway, interface = _route()
@@ -103,7 +116,8 @@ def discover_network() -> dict:
         "connection_detail": "Tu equipo tiene una ruta de red activa." if ready else "Revisa que estés conectado a Wi‑Fi o cable y vuelve a intentarlo.",
         "local_address": local_ip or "No disponible",
         "gateway": gateway or "No disponible",
-        "interface": interface or "No disponible",
+        "interface": _connection_name(interface),
+        "interface_detail": interface or "No disponible",
         "devices": devices,
         "device_count": len(devices),
         "discovery_note": "Mostramos los equipos que tu computadora ya ha detectado. Los equipos en reposo pueden aparecer cuando vuelvas a actualizar.",
